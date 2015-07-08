@@ -1,0 +1,71 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 21
+    buildToolsVersion "21.1.1"
+
+    defaultConfig {
+        minSdkVersion 8
+        targetSdkVersion 21
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    // Configure source folders like Eclipse
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            jni.srcDirs = ['jni']
+            java.srcDirs = ['srcJava']
+            resources.srcDirs = ['srcJava']
+            aidl.srcDirs = ['srcJava']
+            renderscript.srcDirs = ['srcJava']
+            res.srcDirs = ['res']
+            assets.srcDirs = ['assets']
+            jniLibs.srcDirs = ['libs']
+        }
+    }
+}
+
+dependencies {
+    compile project(':ofAndroidLib')
+    compile files('libs/inde/audible-magic-plugin-1.2.2675.jar')
+    compile files('libs/inde/netty-all-4.0.15.Final.jar')
+    compile files('libs/inde/wms-transport-wowz.jar')
+    compile files('libs/audible-magic-plugin-1.2.2675.jar')
+    compile files('libs/netty-all-4.0.15.Final.jar')
+    compile files('libs/wms-transport-wowz.jar')
+    compile files('libs/android-1.2.2675.jar')
+    compile files('libs/domain-1.2.2675.jar')
+}
+
+task compileReleaseOF(dependsOn: rootProject.ofNdkSetup) << {
+    rootProject.ofRunMake(["-C", projectDir.absolutePath, "PLATFORM_OS=Android", "Release"])
+}
+
+task compileDebugOF(dependsOn: rootProject.ofNdkSetup) << {
+    rootProject.ofRunMake(["-C", projectDir.absolutePath, "PLATFORM_OS=Android", "Debug"])
+}
+
+task cleanOF(dependsOn: rootProject.ofNdkSetup) << {
+    rootProject.ofRunMake(["-C", projectDir.absolutePath, "PLATFORM_OS=Android", "clean"])
+}
+
+clean {
+    dependsOn cleanOF
+}
+
+preBuild {
+    doLast {
+        tasks.preDebugBuild.doLast {
+            tasks.compileDebugOF.execute()
+        }
+        tasks.preReleaseBuild.doLast {
+            tasks.compileReleaseOF.execute()
+        }
+    }
+}

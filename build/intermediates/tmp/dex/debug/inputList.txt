@@ -1,0 +1,4 @@
+/home/kashim/OFDroid/of_v0.8.4_android_release/apps/myApps/androidEmptyExample/build/intermediates/classes/debug
+/home/kashim/OFDroid/of_v0.8.4_android_release/apps/myApps/androidEmptyExample/build/intermediates/pre-dexed/debug/audible-magic-plugin-1.2.2675-2f0cc78b0b729a8330d4d5990939f7a3d3045532.jar
+/home/kashim/OFDroid/of_v0.8.4_android_release/apps/myApps/androidEmptyExample/build/intermediates/pre-dexed/debug/classes-c4414aa31bd5c0c7e8b888b4611e4921447dc6d1.jar
+/home/kashim/OFDroid/of_v0.8.4_android_release/apps/myApps/androidEmptyExample/build/intermediates/pre-dexed/debug/netty-all-4.0.15.Final-c28d2d33c57c57f146921513931d596867913d3b.jar

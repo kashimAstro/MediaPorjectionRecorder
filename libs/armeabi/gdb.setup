@@ -1,0 +1,6 @@
+set solib-search-path /home/kashim/OFDroid/of_v0.8.4_android_release/apps/myApps/androidEmptyExample/obj/local/armeabi:/home/kashim/OFDroid/of_v0.8.4_android_release/apps/myApps/androidEmptyExample/libs/armeabi
+directory /home/kashim/OFDroid/android-ndk-r9b/platforms/android-17/arch-arm/usr/include
+directory /home/kashim/OFDroid/of_v0.8.4_android_release/apps/myApps/androidEmptyExample/src
+directory /home/kashim/OFDroid/android-ndk-r9b/sources/cxx-stl/system
+directory /home/kashim/OFDroid/of_v0.8.4_android_release/apps/myApps/androidEmptyExample/libs/armeabi
+

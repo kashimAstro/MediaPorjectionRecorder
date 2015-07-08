@@ -1,0 +1,238 @@
+#include "ofMain.h"
+#include "ofxAndroid.h"
+#include "ofxAccelerometer.h"
+#include "ofxNetwork.h"
+
+
+class xApp : public ofBaseApp {
+	public:
+		ofCamera cam;
+		int w,h;
+		float BALL_R=7;
+		float BOUNCE_HEIGHT=75.0;
+		float BOUNCE_STRIDE=20.0;
+		float TILE_SIZE=20.0;
+		float hite=70.0;
+		int tiles[1000][6];
+		bool gotbonus[1000][6];
+		vector<ofColor> palette;
+		float xp,yp;
+		int score;
+		int lives;
+		bool gameover = false;
+ 		float combo=1.0;
+		int FOR_FRAMES=10;
+		int flashCounter;
+		ofVec3f accel, normAccel;
+
+                ofxTCPClient tcpClient;
+
+
+
+        void reset() {
+              for (int row=0;row<1000;row++) {
+                    for (int col=0;col<6;col++) {
+                          tiles[row][col]=1;
+                          if (row>20 && ofRandom(0,10)>8) tiles[row][col]=0;
+                          if (row>30 && ofRandom(0,100)>95) tiles[row][col]=2;
+                          if (row>30 && ofRandom(0,100)>98) tiles[row][col]=3;
+                          if (row>60 && ofRandom(0,100)>99) tiles[row][col]=4;
+                    }
+              }
+              score=0;
+              lives=5;
+              combo=1.0;
+              gameover=false;
+        }
+
+		float counter;
+                int connectTime;
+                int deltaTime;
+                bool weConnected;
+                int size;
+                int pos;
+                bool typed;
+
+
+		void setup(){
+			ofSetFrameRate(150);
+
+			w=ofGetScreenWidth();
+			h=ofGetScreenHeight();
+			reset();
+			palette.push_back(ofColor(0));
+			palette.push_back(ofColor(255));
+			palette.push_back(ofColor(255,255,0));
+			palette.push_back(ofColor(0,255,255));
+			palette.push_back(ofColor(255,0,0));
+		        ofxAccelerometer.setup();
+		        weConnected = tcpClient.setup("172.16.203.18", 11999);
+		        tcpClient.setMessageDelimiter("\n");
+		        tcpClient.setVerbose(true);
+			typed = false;
+        		pos   = 0;
+		        connectTime = 0;
+		        deltaTime = 0;
+		}
+
+		void update(){
+			ofSetWindowTitle(ofToString(ofGetFrameRate()));
+        		accel = ofxAccelerometer.getForce();
+		        normAccel = accel.getNormalized()*25;
+			if(weConnected){
+				string sendMsg = ofToString((normAccel.x*10))+"\n";
+		                if(tcpClient.send(sendMsg)){
+	                        	string str = tcpClient.receive();
+	                        	if( str.length() > 0 ){
+	        	                        ofLog()<< "Client-received:"<<str;
+		                        }
+		                }else if(!tcpClient.isConnected()){
+	        	                weConnected = false;
+        	        	}
+		        }else{
+	                	deltaTime = ofGetElapsedTimeMillis() - connectTime;
+		                if( deltaTime > 5000 ){
+		                        weConnected = tcpClient.setup("172.16.203.18", 11999);
+		                        connectTime = ofGetElapsedTimeMillis();
+		                }
+		        }
+		}
+
+		void draw(){
+			ofBackgroundGradient(255,0);
+			int ypos=(ofGetFrameNum()%20000);
+	            cam.begin();
+	            cam.setPosition(0,ypos,hite);
+	            cam.lookAt(ofVec3f(0,(ypos+400),0), ofVec3f(0,1,0));
+	            ofBackground(0);
+	            //float xx = 60-ofGetMouseX()/4.25;
+	            //float yy = ypos+60+((512.0-ofGetMouseY())/5.0);
+		    float xx = 0-(normAccel.x*10)/4.25;
+		    float yy = ypos+60+((512.0-normAccel.y*15)/5.0);
+	            float zz = BALL_R/2.0+(BOUNCE_HEIGHT*(float)abs(sin(ofGetFrameNum()/BOUNCE_STRIDE))); // up-down
+	            for (int col=0;col<6;col++) {
+	                int x=-60+(20*col);
+	                for (int row=0;row<1000;row++) {
+	                    int y=20*row;
+	                    if (y>ypos && y<ypos+500 && tiles[row][col]>0) {
+	                        ofSetColor(palette[tiles[row][col]],255-((y-ypos)/2));
+	                        ofRect(x,y,20,20);
+	                    }
+	                }
+	            }
+	            ofSetColor(127);
+        	    if (!gameover) {
+	                ofEllipse(xx,yy,20,20);
+	                ofPushMatrix();
+			ofPushStyle();
+	                ofTranslate(xx,yy,zz);
+	                ofRotateX(-ofGetFrameNum()/20.0);
+			ofFill();
+	                ofSetColor(190,56,78);
+	                ofDrawSphere(BALL_R);
+			ofNoFill();
+			ofSetColor(0);
+	                ofDrawSphere(BALL_R);
+			ofPopStyle();
+	                ofPopMatrix();
+	            }
+		    cam.end();
+
+	            ofPushMatrix();
+	            ofDrawBitmapStringHighlight("SCORE",0,0);
+	            ofDrawBitmapStringHighlight(ofToString(score)+" - moves:"+ofToString(normAccel.x)+" - "+ofToString(normAccel.y),0,40);
+	            if (combo>1.0) {
+	                ofDrawBitmapStringHighlight(ofToString(combo)+"X COMBO",0,80);
+	            }
+	            ofDrawBitmapStringHighlight("LIVES",0,120);
+	            ofDrawBitmapStringHighlight(ofToString(lives)+"",0,160);
+	            if (zz <= BALL_R && !gameover) groundCheck(xx,yy);
+	            if (gameover) {
+	                ofPushMatrix();
+	                ofRotateZ(PI);
+	                ofRotateX((PI*3.0/2.2));
+	                ofDrawBitmapStringHighlight("GAME OVER",0,200);
+	                ofPopMatrix();
+	            }
+	            ofPopMatrix();	
+		}
+
+		void keyPressed(int key){
+        	    if(key == ' ') { if (gameover) reset(); }
+		}
+
+		void groundCheck(float xx,float yy) {
+            if (BOUNCE_HEIGHT>0.0) BOUNCE_HEIGHT=70.0;
+                int row=(int)(yy/20.0);
+                int col=(int)((xx+60)/20.0);
+                int tiletype=0;
+                if (col<0 || col>=6) {
+                    tiletype=0 ;
+                } else {
+                    tiletype=tiles[row][col];
+                    if (!(gotbonus[row][col])) {
+                    gotbonus[row][col]=true;
+                    switch (tiletype) {
+                        case 0:
+                            lives--;
+                            if (lives==0) gameover=true;
+                            combo=1.0;
+                            flashCounter=FOR_FRAMES;
+                        break;
+                        case 1:
+                            score+=10;
+                            combo=1.0;
+                        break;
+                        case 2:
+                            score+=50*combo;
+                            tiles[row][col]=1;
+                            if (BOUNCE_HEIGHT>0.0) combo*=2.0;
+                        break;
+                        case 3:
+                            BOUNCE_HEIGHT=120.0;
+                            score+=50*combo;
+                            tiles[row][col]=1;
+                            if (BOUNCE_HEIGHT>0.0) combo*=2.0;
+                        break;
+                        case 4:
+                            BOUNCE_HEIGHT=0.0;
+                            combo=1.0;
+                        break;
+                        default:
+                        break;
+                    }
+                }
+            }
+	}
+
+	void mousePressed(int x, int y, int button){
+		if(gameover) reset();
+		ofLog()<<"TAP!!!!!";
+	}
+
+/*	void touchDown(int x, int y, int id);
+        void touchMoved(int x, int y, int id);
+        void touchUp(int x, int y, int id);
+        void touchDoubleTap(int x, int y, int id);
+        void touchCancelled(int x, int y, int id);
+        void swipe(ofxAndroidSwipeDir swipeDir, int id);*/
+
+};
+
+int main(){
+        ofSetupOpenGL(1024,768, OF_WINDOW); 
+        ofRunApp( new xApp() );
+        return 0;
+}
+
+
+#ifdef TARGET_ANDROID
+#include <jni.h>
+
+//========================================================================
+extern "C"{
+        void Java_cc_openframeworks_OFAndroid_init( JNIEnv*  env, jobject  thiz ){
+                main();
+        }
+}
+#endif
